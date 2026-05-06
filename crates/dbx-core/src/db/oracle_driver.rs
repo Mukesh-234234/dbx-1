@@ -103,8 +103,8 @@ pub async fn get_columns(conn: &OracleClient, schema: &str, table: &str) -> Resu
         .rows
         .iter()
         .filter_map(|row| {
-            let name = row.get_string(0)?;
-            let base = row.get_string(1)?;
+            let name = row.get_string(0)?.to_string();
+            let base = row.get_string(1)?.to_string();
             let data_len = row.get_i64(5).map(|v| v as i32);
             let char_len = row.get_i64(6).map(|v| v as i32);
             let num_prec = row.get_i64(3).map(|v| v as i32);
@@ -114,7 +114,7 @@ pub async fn get_columns(conn: &OracleClient, schema: &str, table: &str) -> Resu
                     let len = char_len.or(data_len);
                     match len {
                         Some(n) => format!("{base}({n})"),
-                        None => base,
+                        None => base.clone(),
                     }
                 }
                 "NUMBER" => match (num_prec, num_scale) {
@@ -126,7 +126,7 @@ pub async fn get_columns(conn: &OracleClient, schema: &str, table: &str) -> Resu
                     Some(n) => format!("RAW({n})"),
                     None => "RAW".to_string(),
                 },
-                _ => base,
+                _ => base.clone(),
             };
             Some(ColumnInfo {
                 is_primary_key: pk_names.contains(&name),
