@@ -31,11 +31,7 @@ fn value_to_json(val: &oracle_rs::Value) -> serde_json::Value {
 pub async fn list_databases(conn: &OracleClient) -> Result<Vec<DatabaseInfo>, String> {
     let result =
         conn.query("SELECT username FROM all_users ORDER BY username", &[]).await.map_err(|e| e.to_string())?;
-    Ok(result
-        .rows
-        .iter()
-        .filter_map(|row| row.get_string(0).map(|s| DatabaseInfo { name: s.to_string() }))
-        .collect())
+    Ok(result.rows.iter().filter_map(|row| row.get_string(0).map(|s| DatabaseInfo { name: s.to_string() })).collect())
 }
 
 pub async fn list_schemas(conn: &OracleClient) -> Result<Vec<String>, String> {
@@ -59,10 +55,7 @@ pub async fn list_tables(conn: &OracleClient, schema: &str) -> Result<Vec<TableI
         .filter_map(|row| {
             let name = row.get_string(0)?;
             let table_type = row.get_string(1)?;
-            Some(TableInfo {
-                name: name.to_string(),
-                table_type: table_type.to_string(),
-            })
+            Some(TableInfo { name: name.to_string(), table_type: table_type.to_string() })
         })
         .collect())
 }
@@ -231,11 +224,7 @@ pub async fn list_triggers(conn: &OracleClient, schema: &str, table: &str) -> Re
             let name = row.get_string(0)?;
             let event = row.get_string(1)?;
             let timing = row.get_string(2)?;
-            Some(TriggerInfo {
-                name: name.to_string(),
-                event: event.to_string(),
-                timing: timing.to_string(),
-            })
+            Some(TriggerInfo { name: name.to_string(), event: event.to_string(), timing: timing.to_string() })
         })
         .collect())
 }
