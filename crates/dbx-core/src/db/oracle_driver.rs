@@ -31,13 +31,17 @@ fn value_to_json(val: &oracle_rs::Value) -> serde_json::Value {
 pub async fn list_databases(conn: &OracleClient) -> Result<Vec<DatabaseInfo>, String> {
     let result =
         conn.query("SELECT username FROM all_users ORDER BY username", &[]).await.map_err(|e| e.to_string())?;
-    Ok(result.rows.iter().map(|row| DatabaseInfo { name: row.get_string(0).unwrap_or("").to_string() }).collect())
+    Ok(result
+        .rows
+        .iter()
+        .filter_map(|row| row.get_string(0).map(|s| DatabaseInfo { name: s.to_string() }))
+        .collect())
 }
 
 pub async fn list_schemas(conn: &OracleClient) -> Result<Vec<String>, String> {
     let result =
         conn.query("SELECT username FROM all_users ORDER BY username", &[]).await.map_err(|e| e.to_string())?;
-    Ok(result.rows.iter().map(|row| row.get_string(0).unwrap_or("").to_string()).collect())
+    Ok(result.rows.iter().filter_map(|row| row.get_string(0).map(|s| s.to_string())).collect())
 }
 
 pub async fn list_tables(conn: &OracleClient, schema: &str) -> Result<Vec<TableInfo>, String> {
@@ -52,9 +56,13 @@ pub async fn list_tables(conn: &OracleClient, schema: &str) -> Result<Vec<TableI
     Ok(result
         .rows
         .iter()
-        .map(|row| TableInfo {
-            name: row.get_string(0).unwrap_or("").to_string(),
-            table_type: row.get_string(1).unwrap_or("TABLE").to_string(),
+        .filter_map(|row| {
+            let name = row.get_string(0)?;
+            let table_type = row.get_string(1)?;
+            Some(TableInfo {
+                name: name.to_string(),
+                table_type: table_type.to_string(),
+            })
         })
         .collect())
 }
@@ -155,18 +163,22 @@ pub async fn list_indexes(conn: &OracleClient, schema: &str, table: &str) -> Res
     Ok(result
         .rows
         .iter()
-        .map(|row| {
-            let cols_str = row.get_string(1).unwrap_or("");
-            IndexInfo {
-                name: row.get_string(0).unwrap_or("").to_string(),
+        .filter_map(|row| {
+            let name = row.get_string(0)?;
+            let cols_str = row.get_string(1)?;
+            let uniqueness = row.get_string(2)?;
+            let is_pk = row.get_i64(3)?;
+            let index_type = row.get_string(4);
+            Some(IndexInfo {
+                name: name.to_string(),
                 columns: cols_str.split(',').filter(|s| !s.is_empty()).map(|s| s.to_string()).collect(),
-                is_unique: row.get_string(2).unwrap_or("") == "UNIQUE",
-                is_primary: row.get_i64(3).unwrap_or(0) == 1,
+                is_unique: uniqueness == "UNIQUE",
+                is_primary: is_pk == 1,
                 filter: None,
-                index_type: row.get_string(4).map(|s| s.to_string()),
+                index_type: index_type.map(|s| s.to_string()),
                 included_columns: None,
                 comment: None,
-            }
+            })
         })
         .collect())
 }
@@ -187,11 +199,17 @@ pub async fn list_foreign_keys(conn: &OracleClient, schema: &str, table: &str) -
     Ok(result
         .rows
         .iter()
-        .map(|row| ForeignKeyInfo {
-            name: row.get_string(0).unwrap_or("").to_string(),
-            column: row.get_string(1).unwrap_or("").to_string(),
-            ref_table: row.get_string(2).unwrap_or("").to_string(),
-            ref_column: row.get_string(3).unwrap_or("").to_string(),
+        .filter_map(|row| {
+            let name = row.get_string(0)?;
+            let column = row.get_string(1)?;
+            let ref_table = row.get_string(2)?;
+            let ref_column = row.get_string(3)?;
+            Some(ForeignKeyInfo {
+                name: name.to_string(),
+                column: column.to_string(),
+                ref_table: ref_table.to_string(),
+                ref_column: ref_column.to_string(),
+            })
         })
         .collect())
 }
@@ -209,10 +227,15 @@ pub async fn list_triggers(conn: &OracleClient, schema: &str, table: &str) -> Re
     Ok(result
         .rows
         .iter()
-        .map(|row| TriggerInfo {
-            name: row.get_string(0).unwrap_or("").to_string(),
-            event: row.get_string(1).unwrap_or("").to_string(),
-            timing: row.get_string(2).unwrap_or("").to_string(),
+        .filter_map(|row| {
+            let name = row.get_string(0)?;
+            let event = row.get_string(1)?;
+            let timing = row.get_string(2)?;
+            Some(TriggerInfo {
+                name: name.to_string(),
+                event: event.to_string(),
+                timing: timing.to_string(),
+            })
         })
         .collect())
 }
