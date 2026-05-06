@@ -114,7 +114,7 @@ pub async fn get_columns(conn: &OracleClient, schema: &str, table: &str) -> Resu
                     let len = char_len.or(data_len);
                     match len {
                         Some(n) => format!("{base}({n})"),
-                        None => base.clone(),
+                        None => base.to_string(),
                     }
                 }
                 "NUMBER" => match (num_prec, num_scale) {
@@ -126,10 +126,10 @@ pub async fn get_columns(conn: &OracleClient, schema: &str, table: &str) -> Resu
                     Some(n) => format!("RAW({n})"),
                     None => "RAW".to_string(),
                 },
-                _ => base.clone(),
+                _ => base.to_string(),
             };
             Some(ColumnInfo {
-                is_primary_key: pk_names.contains(&name),
+                is_primary_key: pk_names.contains(name.as_str()),
                 name,
                 data_type,
                 is_nullable: row.get_string(2).unwrap_or("N") == "Y",
